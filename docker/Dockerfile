@@ -34,8 +34,8 @@ RUN set -x \
        libprotobuf-dev \
        m4 \
        protobuf-compiler \
-       python \
-       python-dev \
+       python3 \
+       python3-dev \
        python-six \
        scons \
        telnet \

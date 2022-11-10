@@ -103,9 +103,9 @@ build() {
   # Building inst-constrs-3.cc is a memory hog and can easily run the
   # container out of resources if done in parallel with other compiles. So
   # we first build it alone and then build the rest.
-  local cmd="/usr/bin/env python3 /usr/bin/scons build/ARM/arch/arm/generated/inst-constrs-3.o"
-  echo "${cmd}"
-  ${cmd}
+  #local cmd="/usr/bin/env python3 /usr/bin/scons build/ARM/arch/arm/generated/inst-constrs-3.o"
+  #echo "${cmd}"
+  #${cmd}
   # Now build the rest in parallel.
   cmd="/usr/bin/env python3 /usr/bin/scons -j $(nproc) build/ARM/gem5.opt"
   echo "${cmd}"

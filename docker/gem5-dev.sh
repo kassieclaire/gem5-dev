@@ -6,6 +6,9 @@
 #
 # Author: Artur Klauser
 
+# Updated by: Kassie Povinelli
+# Date: 11/09/2022
+
 #MOUNTDIR#  # substituted during docker build
 mountdir=${mountdir:-'/gem5'}
 readonly sourcedir="${mountdir}/source"
@@ -54,7 +57,7 @@ install_source() {
 update_source() {
   check_hostdir_mounted
   if [[ -e "${sourcedir}/.git" ]]; then
-    echo "updatig gem5 source respository at ${sourcedir} ..."
+    echo "updating gem5 source respository at ${sourcedir} ..."
     cd "${sourcedir}" || exit 1
     git pull
   else
@@ -100,11 +103,11 @@ build() {
   # Building inst-constrs-3.cc is a memory hog and can easily run the
   # container out of resources if done in parallel with other compiles. So
   # we first build it alone and then build the rest.
-  local cmd="scons build/ARM/arch/arm/generated/inst-constrs-3.o"
+  local cmd="/usr/bin/env python3 /usr/bin/scons build/ARM/arch/arm/generated/inst-constrs-3.o"
   echo "${cmd}"
   ${cmd}
   # Now build the rest in parallel.
-  cmd="scons -j $(nproc) build/ARM/gem5.opt"
+  cmd="/usr/bin/env python3 /usr/bin/scons -j $(nproc) build/ARM/gem5.opt"
   echo "${cmd}"
   ${cmd}
 }
@@ -165,7 +168,7 @@ run_fs() {
 run_shell() {
   check_hostdir_mounted
   echo "To build gem5, run: "
-  echo "  cd ${sourcedir}; scons -j \$(nproc) build/ARM/gem5.opt"
+  echo "  cd ${sourcedir}; /usr/bin/env python3 /usr/bin/scons -j \$(nproc) build/ARM/gem5.opt"
   cd "${mountdir}" || exit 1
   exec /bin/bash -l
 }

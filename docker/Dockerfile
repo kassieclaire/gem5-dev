@@ -34,14 +34,20 @@ RUN set -x \
        libprotobuf-dev \
        m4 \
        protobuf-compiler \
-       python \
-       python-dev \
+       python3 \
+       python3-dev \
        python-six \
        scons \
        telnet \
        wget \
        zlib1g-dev \
        $packages \
+       libboost-all-dev \
+       pkg-config \
+       libprotoc-dev \
+       zlib1g \
+       build-essential \
+       gcc \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 

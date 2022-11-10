@@ -8,6 +8,9 @@
 #   docker run -v $GEM5_HOST_WORKDIR:/gem5 --rm -it gem5-dev [<cmd>]
 #
 # Author: Artur Klauser
+#
+# Updated by: Kassie Povinelli
+# Date: 11/09/2022
 
 FROM ubuntu:18.04
 # FROM alpine:3.7
@@ -48,6 +51,7 @@ RUN set -x \
        zlib1g \
        build-essential \
        gcc \
+       python-pydot \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 

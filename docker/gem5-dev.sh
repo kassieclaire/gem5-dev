@@ -14,6 +14,9 @@ mountdir=${mountdir:-'/gem5'}
 readonly sourcedir="${mountdir}/source"
 readonly systemdir="${mountdir}/system"
 
+#DISK
+readonly disk="ubuntu-18.04-arm64-docker.img"
+
 print_usage() {
   cat << EOF
 Usage: gem5-dev <cmd>
@@ -68,25 +71,49 @@ update_source() {
 # Download full system image if it isn't aleady there.
 install_system() {
   check_hostdir_mounted
-  if [[ ! -e "${systemdir}" ]]; then
-    echo "installing ARM full-system image into ${systemdir} ..."
+  echo "installing ARM full-system image into ${systemdir} ..."
+  #if systemdir doesn't exist, create it
+  if [ ! -d "${systemdir}" ]; then
     mkdir "${systemdir}"
-    cd "${systemdir}" || exit 1
-    #--- http://www.gem5.org/dist/current/arm/* disappeared on 2020-01-29.
-    #--- Content is still visible at http://m5sim.org/dist/current/arm/.
-    # local image='aarch-system-20180409.tar.xz'
-    # echo "installing ARM full-system image $image"
-    # wget -O - "http://www.gem5.org/dist/current/arm/${image}" | tar xJvf -
-    #--- Using Pau's GitHub releases from 2018 instead.
-    local image='aarch-system-20180409.tar.xz'
-    echo "installing ARM full-system image $image"
-    local releases='https://github.com/metempsy'
-    releases+='/gem5_arm_fullsystem_files_generator/releases/download/20180409'
-    wget -O - "${releases}/${image}" | tar xJvf -
-    # Fix up image: ARM/dev/arm/RealView.py requires boot.arm64 to exist.
-    ln -s 'boot_emm.arm64' 'binaries/boot.arm64'
+  fi
+  cd "${systemdir}" || exit 1
+  #--- http://www.gem5.org/dist/current/arm/* disappeared on 2020-01-29.
+  #--- Content is still visible at http://m5sim.org/dist/current/arm/.
+  # local image='aarch-system-20180409.tar.xz'
+  # echo "installing ARM full-system image $image"
+  # wget -O - "http://www.gem5.org/dist/current/arm/${image}" | tar xJvf -
+  #--- Using Pau's GitHub releases from 2018 instead.
+  
+  local image='aarch-system-20220707.tar.bz2'
+  #check if the binaries are already downloaded
+  #check if boot_emm.arm64 is in the directory binaries
+  if [ ! -f "binaries/boot_emm.arm64" ]; then
+      echo "installing ARM full-system image $image"
+      local releases='http://dist.gem5.org/dist/v22-0/arm'
+      wget -O - "${releases}/${image}" | tar xjvf -
+      # Fix up image: ARM/dev/arm/RealView.py requires boot.arm64 to exist.
+      ln -s 'boot_emm.arm64' 'binaries/boot.arm64'
   else
     echo "ARM full-system image is already installed."
+  fi
+  #check if the disk image is already downloaded
+  #the disk image is in disks
+  if [ ! -f "disks/${disk}" ]; then
+      echo "installing ARM disk image $disk"
+        #download the latest linux disk image from http://dist.gem5.org/dist/v22-0/arm/disks/ubuntu-18.04-arm64-docker.img.bz2
+      local releases='http://dist.gem5.org/dist/v22-0/arm/disks'
+      #if compressed disk image doesn't exist, download it
+      if [ ! -f "${disk}.bz2" ]; then
+        wget "${releases}/${disk}.bz2"
+      fi
+      #unzip the disk image
+      echo "unzipping disk image"
+      bzip2 -d "${disk}.bz2"
+      #move the disk image to the disks directory
+      echo "moving disk image to disks directory"
+      mv "${disk}" "/disks"
+  else
+    echo "ARM disk image is already installed."
   fi
 }
 
@@ -155,12 +182,21 @@ run_fs() {
     echo "gem5 simulator binary ${simulator} not found."
     exit 1
   fi
+
+  #legacy settings
+  # local -r cmd="${simulator} ${script} \
+  #   --machine-type=VExpress_GEM5_V1 \
+  #   --dtb=armv8_gem5_v1_1cpu.dtb \
+  #   --kernel=vmlinux.vexpress_gem5_v1_64 \
+  #   --script=tests/halt.sh"
+  # echo "${cmd}"
+
+  #new settings
   local -r cmd="${simulator} ${script} \
-    --machine-type=VExpress_GEM5_V1 \
-    --dtb=armv8_gem5_v1_1cpu.dtb \
-    --kernel=vmlinux.vexpress_gem5_v1_64 \
-    --script=tests/halt.sh"
-  echo "${cmd}"
+    --machine-type=VExpress_GEM5_V2 \
+    --kernel=vmlinux.arm64
+    --script=tests/halt.sh \
+    --disk-image=${systemdir}/disks/${disk}"
   ${cmd}
 }
 

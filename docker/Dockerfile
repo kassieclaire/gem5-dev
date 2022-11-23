@@ -52,6 +52,7 @@ RUN set -x \
        build-essential \
        gcc \
        python-pydot \
+       bzip2 \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 

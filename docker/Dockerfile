@@ -51,8 +51,8 @@ RUN set -x \
        zlib1g \
        build-essential \
        gcc \
-       python-pydot \
-       bzip2 \
+       #python-pydot \
+       lbzip2 \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 

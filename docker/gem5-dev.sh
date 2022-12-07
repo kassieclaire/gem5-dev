@@ -99,19 +99,18 @@ install_system() {
   #check if the disk image is already downloaded
   #the disk image is in disks
   if [ ! -f "disks/${disk}" ]; then
-      echo "installing ARM disk image $disk"
-        #download the latest linux disk image from http://dist.gem5.org/dist/v22-0/arm/disks/ubuntu-18.04-arm64-docker.img.bz2
-      local releases='http://dist.gem5.org/dist/v22-0/arm/disks'
-      #if compressed disk image doesn't exist, download it
-      if [ ! -f "${disk}.bz2" ]; then
-        wget "${releases}/${disk}.bz2"
-      fi
-      #unzip the disk image
-      echo "unzipping disk image"
-      bzip2 -d "${disk}.bz2"
-      #move the disk image to the disks directory
-      echo "moving disk image to disks directory"
-      mv "${disk}" "/disks"
+    #change to the disks directory
+    cd disks || exit 1
+    echo "installing ARM disk image $disk"
+      #download the latest linux disk image from http://dist.gem5.org/dist/v22-0/arm/disks/ubuntu-18.04-arm64-docker.img.bz2
+    local releases='http://dist.gem5.org/dist/v22-0/arm/disks'
+    #if compressed disk image doesn't exist, download it
+    if [ ! -f "${disk}.bz2" ]; then
+      wget "${releases}/${disk}.bz2"
+    fi
+    #unzip the disk image
+    echo "unzipping disk image"
+    lbzip2 -d "${disk}.bz2"
   else
     echo "ARM disk image is already installed."
   fi
@@ -195,7 +194,7 @@ run_fs() {
   local -r cmd="${simulator} ${script} \
     --machine-type=VExpress_GEM5_V2 \
     --kernel=vmlinux.arm64
-    --script=tests/halt.sh \
+    --script=tests/compiler-tests.sh \
     --disk-image=${systemdir}/disks/${disk}"
   ${cmd}
 }

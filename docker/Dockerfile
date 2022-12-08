@@ -51,6 +51,7 @@ RUN set -x \
        zlib1g \
        build-essential \
        gcc \
+       gcc-arm-linux-gnueabihf \
        #python-pydot \
        lbzip2 \
     && apt-get clean \

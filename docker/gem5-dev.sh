@@ -28,6 +28,10 @@ Where <cmd> is one of:
   build ............ builds gem5 ARM binary
   run-se ........... runs gem5 ARM in Syscall Emulation mode
   run-fs ........... runs gem5 ARM in Full System mode
+  compile-hello-world ... compiles a simple hello world program for gem5 ARM
+  compile-program .. compiles a program for gem5 ARM
+  run-program ...... runs a program in gem5 ARM
+  run-hello-world .. runs a simple hello world program in gem5 ARM
   shell | bash ..... enters into an interactive shell
 EOF
 }
@@ -207,6 +211,102 @@ run_shell() {
   cd "${mountdir}" || exit 1
   exec /bin/bash -l
 }
+#Compiles the matrix multiplication C++ program
+compile_mm() {
+  check_hostdir_mounted
+  if [[ ! -e "${sourcedir}" ]]; then
+    echo "gem5 source respository not found at ${sourcedir}."
+    exit 1
+  fi
+  echo "compiling matrix multiplication program ..."
+  cd "${sourcedir}" || exit 1
+  #include the m5op.S file for ARM
+  local -r cmd="g++ mm.cpp -o mm16 -static -Iinclude util/m5/src/abi/arm64/m5op.S -DBLOCK_SIZE=16 -O3 -std=c++11"
+  echo "${cmd}"
+  ${cmd}
+}
+#Compiles a basic hello world C++ program
+compile_hello_world() {
+  check_hostdir_mounted
+  if [[ ! -e "${sourcedir}" ]]; then
+    echo "gem5 source respository not found at ${sourcedir}."
+    exit 1
+  fi
+  echo "compiling hello world program ..."
+  cd "${sourcedir}" || exit 1
+  #include the m5op.S file for ARM
+  local -r cmd="g++ hello_world.cpp -o hello_world -static -Iinclude util/m5/src/abi/arm64/m5op.S -O3 -std=c++11"
+  echo "${cmd}"
+  ${cmd}
+}
+#runs the compiled hello world program in gem5 se mode (based on the run_se function)
+hello_world_se() {
+  check_hostdir_mounted
+  if [[ ! -e "${sourcedir}" ]]; then
+    echo "gem5 source respository not found at ${sourcedir}."
+    exit 1
+  fi
+
+  echo "running gem5 ARM binary in Syscall Emulation mode ..."
+  cd "${sourcedir}" || exit 1
+  local -r simulator='build/ARM/gem5.opt'
+  local -r script='configs/example/se.py'
+  local -r binary='hello_world'
+  if [[ ! -e "${simulator}" ]]; then
+    echo "gem5 simulator binary ${simulator} not found."
+    exit 1
+  fi
+  local -r cmd="${simulator} ${script} -c ${binary}"
+  echo "${cmd}"
+  ${cmd}
+}
+#Compile a program given its name as an argument
+compile_program() {
+  #ask for the program name
+  echo "Enter the name of the program you want to compile:"
+  read -r program_name
+  check_hostdir_mounted
+  if [[ ! -e "${sourcedir}" ]]; then
+    echo "gem5 source respository not found at ${sourcedir}."
+    exit 1
+  fi
+  echo "compiling program ..."
+  cd "${sourcedir}" || exit 1
+  #include the m5op.S file for ARM
+  local -r cmd="g++ $program_name.cpp -o $program_name -static -Iinclude util/m5/src/abi/arm64/m5op.S -O3 -std=c++11"
+  echo "${cmd}"
+  ${cmd}
+}
+#Run a program in syscall-emulation mode given its name as an argument
+run_program_se() {
+  #ask for the program name
+  echo "Enter the name of the program you want to run:"
+  read -r program_name
+  check_hostdir_mounted
+  if [[ ! -e "${sourcedir}" ]]; then
+    echo "gem5 source respository not found at ${sourcedir}."
+    exit 1
+  fi
+  echo "running gem5 ARM binary in Syscall Emulation mode ..."
+  cd "${sourcedir}" || exit 1
+  local -r simulator='build/ARM/gem5.opt'
+  local -r script='configs/example/se.py'
+  local -r binary=$program_name
+  if [[ ! -e "${simulator}" ]]; then
+    echo "gem5 simulator binary ${simulator} not found."
+    exit 1
+  fi
+  #if there is no binary with the given name, exit
+  if [[ ! -e "${binary}" ]]; then
+    echo "binary ${binary} not found."
+    exit 1
+  fi
+  #run the binary
+  local -r cmd="${simulator} ${script} -c ${binary}"
+  echo "${cmd}"
+  ${cmd}
+}
+
 
 main() {
   local cmd
@@ -220,6 +320,11 @@ main() {
       'build') build ;;
       'run-se') run_se ;;
       'run-fs') run_fs ;;
+      'compile-mm' ) compile_mm ;;
+      'compile-hello-world' ) compile_hello_world ;;
+      'hello-world-se' ) hello_world_se ;;
+      'compile-program' ) compile_program ;;
+      'run-program-se' ) run_program_se ;;
       'shell' | 'bash') run_shell ;;
       -* | +*) set "${cmd}" ;; # pass +/-flags to shell's set command.
       *)

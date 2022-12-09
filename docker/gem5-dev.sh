@@ -252,9 +252,9 @@ cross_compile_program() {
   local -r program_name=$1
   #check the extension of the file. If it is cpp, use g++ to compile it. If it is c, use gcc to compile it.
   if [[ $program_name == *.cpp ]]; then
-    local -r compiler="arm-linux-gnueabihf-g++"
+    local -r compiler="aarch64-linux-gnu-g++"
   elif [[ $program_name == *.c ]]; then
-    local -r compiler="arm-linux-gnueabihf-gcc"
+    local -r compiler="aarch64-linux-gnu-gcc"
   else
     echo "The file extension is not supported. Please use .cpp or .c"
     exit 1

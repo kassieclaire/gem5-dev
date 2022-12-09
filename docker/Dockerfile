@@ -51,15 +51,21 @@ RUN set -x \
     zlib1g \
     build-essential \
     gcc \
-    gcc-aarch64-linux-gnu \
-    g++-aarch64-linux-gnu \
     python-pydot \
     python-pydot-ng \
     graphviz \
     lbzip2 \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
-
+#install cross-compiler dependencies only if machine is x86
+RUN if [ $(uname -m) = "x86_64" ]; then \
+    apt-get update \
+    && apt-get install -y \
+    gcc-aarch64-linux-gnu \
+    g++-aarch64-linux-gnu \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*; \
+    fi
 WORKDIR $mountdir
 # Watermark $mountdir in docker image, so we can detect if a host directory is
 # actualy mounted on top when we run the container.

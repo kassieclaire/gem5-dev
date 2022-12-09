@@ -51,8 +51,8 @@ RUN set -x \
     zlib1g \
     build-essential \
     gcc \
-    gcc-arm-linux-gnueabihf \
-    g++-arm-linux-gnueabihf \
+    gcc-aarch64-linux-gnu \
+    g++-aarch64-linux-gnu \
     python-pydot \
     python-pydot-ng \
     graphviz \

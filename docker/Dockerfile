@@ -52,6 +52,7 @@ RUN set -x \
     build-essential \
     gcc \
     gcc-arm-linux-gnueabihf \
+    g++-arm-linux-gnueabihf \
     python-pydot \
     python-pydot-ng \
     graphviz \

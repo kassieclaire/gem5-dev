@@ -240,6 +240,35 @@ compile_program() {
   echo "${cmd}"
   ${cmd}
 }
+#cross-compile a program (same as compile_program, but with a different compiler for cross-compiling ARM on x86)
+cross_compile_program() {
+  if [[ ! -e "${sourcedir}" ]]; then
+    echo "gem5 source respository not found at ${sourcedir}."
+    exit 1
+  fi
+  #change directory to the gem5 source directory
+  cd "${sourcedir}" || exit 1
+  #the program name is the first argument
+  local -r program_name=$1
+  #check the extension of the file. If it is cpp, use g++ to compile it. If it is c, use gcc to compile it.
+  if [[ $program_name == *.cpp ]]; then
+    local -r compiler="g++-arm-linux-gnueabihf"
+  elif [[ $program_name == *.c ]]; then
+    local -r compiler="gcc-arm-linux-gnueabihf"
+  else
+    echo "The file extension is not supported. Please use .cpp or .c"
+    exit 1
+  fi
+  echo "compiling program ..."
+  #if there are more arguments, include them in the compilation command. Otherwise, use the default compiler settings
+  if [[ $# -gt 1 ]]; then
+    local -r cmd="${compiler} ${program_name} -o ${program_name%.*} -static -Iinclude util/m5/src/abi/arm64/m5op.S ${@:2}"
+  else
+    local -r cmd="${compiler} ${program_name} -o ${program_name%.*} -static -Iinclude util/m5/src/abi/arm64/m5op.S -O3 -std=c++11"
+  fi
+  echo "${cmd}"
+  ${cmd}
+}
 #Run a program in syscall-emulation mode given its name as an argument
 run_program_se() {
   check_hostdir_mounted

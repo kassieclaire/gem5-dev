@@ -31,29 +31,31 @@ ARG mountdir=/gem5
 RUN set -x \
     && apt-get update \
     && apt-get install -y \
-       g++ \
-       git \
-       libgoogle-perftools-dev \
-       libprotobuf-dev \
-       m4 \
-       protobuf-compiler \
-       python3 \
-       python3-dev \
-       python-six \
-       scons \
-       telnet \
-       wget \
-       zlib1g-dev \
-       $packages \
-       libboost-all-dev \
-       pkg-config \
-       libprotoc-dev \
-       zlib1g \
-       build-essential \
-       gcc \
-       gcc-arm-linux-gnueabihf \
-       #python-pydot \
-       lbzip2 \
+    g++ \
+    git \
+    libgoogle-perftools-dev \
+    libprotobuf-dev \
+    m4 \
+    protobuf-compiler \
+    python3 \
+    python3-dev \
+    python-six \
+    scons \
+    telnet \
+    wget \
+    zlib1g-dev \
+    $packages \
+    libboost-all-dev \
+    pkg-config \
+    libprotoc-dev \
+    zlib1g \
+    build-essential \
+    gcc \
+    gcc-arm-linux-gnueabihf \
+    python-pydot \
+    python-pydot-ng \
+    graphviz \
+    lbzip2 \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -66,7 +68,7 @@ RUN touch .in-docker-container
 COPY gem5-dev.sh /
 RUN set -x \
     && sed -e s@#MOUNTDIR#@mountdir=$mountdir@ /gem5-dev.sh \
-       > /usr/local/bin/gem5-dev \
+    > /usr/local/bin/gem5-dev \
     && chmod 755 /usr/local/bin/gem5-dev \
     && rm /gem5-dev.sh
 

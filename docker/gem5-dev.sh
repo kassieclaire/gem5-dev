@@ -8,6 +8,7 @@
 
 # Updated by: Kassie Povinelli
 # Date: 11/09/2022
+# Revised: 12/09/2022
 
 #MOUNTDIR#  # substituted during docker build
 mountdir=${mountdir:-'/gem5'}
@@ -28,10 +29,9 @@ Where <cmd> is one of:
   build ............ builds gem5 ARM binary
   run-se ........... runs gem5 ARM in Syscall Emulation mode
   run-fs ........... runs gem5 ARM in Full System mode
-  compile-hello-world ... compiles a simple hello world program for gem5 ARM
   compile-program .. compiles a program for gem5 ARM
-  run-program ...... runs a program in gem5 ARM
-  run-hello-world .. runs a simple hello world program in gem5 ARM
+  cross-compile-program .. cross compiles a program for gem5 ARM (use if on x86)
+  run-program-se ...... runs a program in gem5 ARM syscall emulation mode
   shell | bash ..... enters into an interactive shell
 EOF
 }
@@ -211,77 +211,37 @@ run_shell() {
   cd "${mountdir}" || exit 1
   exec /bin/bash -l
 }
-#Compiles the matrix multiplication C++ program
-compile_mm() {
-  check_hostdir_mounted
-  if [[ ! -e "${sourcedir}" ]]; then
-    echo "gem5 source respository not found at ${sourcedir}."
-    exit 1
-  fi
-  echo "compiling matrix multiplication program ..."
-  cd "${sourcedir}" || exit 1
-  #include the m5op.S file for ARM
-  local -r cmd="g++ mm.cpp -o mm16 -static -Iinclude util/m5/src/abi/arm64/m5op.S -DBLOCK_SIZE=16 -O3 -std=c++11"
-  echo "${cmd}"
-  ${cmd}
-}
-#Compiles a basic hello world C++ program
-compile_hello_world() {
-  check_hostdir_mounted
-  if [[ ! -e "${sourcedir}" ]]; then
-    echo "gem5 source respository not found at ${sourcedir}."
-    exit 1
-  fi
-  echo "compiling hello world program ..."
-  cd "${sourcedir}" || exit 1
-  #include the m5op.S file for ARM
-  local -r cmd="g++ hello_world.cpp -o hello_world -static -Iinclude util/m5/src/abi/arm64/m5op.S -O3 -std=c++11"
-  echo "${cmd}"
-  ${cmd}
-}
-#runs the compiled hello world program in gem5 se mode (based on the run_se function)
-hello_world_se() {
-  check_hostdir_mounted
-  if [[ ! -e "${sourcedir}" ]]; then
-    echo "gem5 source respository not found at ${sourcedir}."
-    exit 1
-  fi
-
-  echo "running gem5 ARM binary in Syscall Emulation mode ..."
-  cd "${sourcedir}" || exit 1
-  local -r simulator='build/ARM/gem5.opt'
-  local -r script='configs/example/se.py'
-  local -r binary='hello_world'
-  if [[ ! -e "${simulator}" ]]; then
-    echo "gem5 simulator binary ${simulator} not found."
-    exit 1
-  fi
-  local -r cmd="${simulator} ${script} -c ${binary}"
-  echo "${cmd}"
-  ${cmd}
-}
-#Compile a program given its name as an argument
+#Compile a program given the compiler to use and its name as an argument
 compile_program() {
-  #ask for the program name
-  echo "Enter the name of the program you want to compile:"
-  read -r program_name
-  check_hostdir_mounted
   if [[ ! -e "${sourcedir}" ]]; then
     echo "gem5 source respository not found at ${sourcedir}."
+    exit 1
+  fi
+  #change directory to the gem5 source directory
+  cd "${sourcedir}" || exit 1
+  #the program name is the first argument
+  local -r program_name=$1
+  #check the extension of the file. If it is cpp, use g++ to compile it. If it is c, use gcc to compile it.
+  if [[ $program_name == *.cpp ]]; then
+    local -r compiler="g++"
+  elif [[ $program_name == *.c ]]; then
+    local -r compiler="gcc"
+  else
+    echo "The file extension is not supported. Please use .cpp or .c"
     exit 1
   fi
   echo "compiling program ..."
-  cd "${sourcedir}" || exit 1
-  #include the m5op.S file for ARM
-  local -r cmd="g++ $program_name.cpp -o $program_name -static -Iinclude util/m5/src/abi/arm64/m5op.S -O3 -std=c++11"
+  #if there are more arguments, include them in the compilation command. Otherwise, use the default compiler settings
+  if [[ $# -gt 1 ]]; then
+    local -r cmd="${compiler} ${program_name} -o ${program_name%.*} -static -Iinclude util/m5/src/abi/arm64/m5op.S ${@:2}"
+  else
+    local -r cmd="${compiler} ${program_name} -o ${program_name%.*} -static -Iinclude util/m5/src/abi/arm64/m5op.S -O3 -std=c++11"
+  fi
   echo "${cmd}"
   ${cmd}
 }
 #Run a program in syscall-emulation mode given its name as an argument
 run_program_se() {
-  #ask for the program name
-  echo "Enter the name of the program you want to run:"
-  read -r program_name
   check_hostdir_mounted
   if [[ ! -e "${sourcedir}" ]]; then
     echo "gem5 source respository not found at ${sourcedir}."
@@ -291,7 +251,7 @@ run_program_se() {
   cd "${sourcedir}" || exit 1
   local -r simulator='build/ARM/gem5.opt'
   local -r script='configs/example/se.py'
-  local -r binary=$program_name
+  local -r binary=$1
   if [[ ! -e "${simulator}" ]]; then
     echo "gem5 simulator binary ${simulator} not found."
     exit 1
@@ -301,8 +261,17 @@ run_program_se() {
     echo "binary ${binary} not found."
     exit 1
   fi
-  #run the binary
-  local -r cmd="${simulator} ${script} -c ${binary}"
+  #if there are more arguments, include them in the compilation command. Otherwise, run the binary without any arguments
+  if [[ $# -gt 1 ]]; then
+    #put the args in a string and pass it to the command
+    local -r args=${@:2}
+    #echo "${args}"
+    echo "running ${binary} with arguments ${args}"
+    local -r cmd="${simulator} ${script} -c ${binary} ${args}"
+  else
+    local -r cmd="${simulator} ${script} -c ${binary}"
+  fi
+  #echo the command and run it
   echo "${cmd}"
   ${cmd}
 }
@@ -311,31 +280,35 @@ run_program_se() {
 main() {
   local cmd
   local -r initial_dir="${PWD}"
-  for cmd in "$@"; do
-    case "${cmd}" in
-      'help') print_usage ;;
-      'install-source') install_source ;;
-      'update-source') update_source ;;
-      'install-system') install_system ;;
-      'build') build ;;
-      'run-se') run_se ;;
-      'run-fs') run_fs ;;
-      'compile-mm' ) compile_mm ;;
-      'compile-hello-world' ) compile_hello_world ;;
-      'hello-world-se' ) hello_world_se ;;
-      'compile-program' ) compile_program ;;
-      'run-program-se' ) run_program_se ;;
-      'shell' | 'bash') run_shell ;;
-      -* | +*) set "${cmd}" ;; # pass +/-flags to shell's set command.
-      *)
-        echo "unkown command '${cmd}'"
-        echo
-        print_usage
-        exit 1
-        ;;
-    esac
-    cd "${initial_dir}" || exit 1
-  done
+  
+  #check to see what command was given. If it is a valid command, run it and pass the rest of the arguments to it. Otherwise, print an error message and the usage
+  #the command is the first argument after gem5-dev
+  #the rest of the arguments are passed to the function
+  cmd="${1}"
+  shift
+  
+  case "${cmd}" in
+    'help') print_usage ;;
+    'install-source') install_source $@;;
+    'update-source') update_source $@;;
+    'install-system') install_system $@;;
+    'build') build $@;;
+    'run-se') run_se $@;;
+    'run-fs') run_fs $@;;
+    'compile-program' ) compile_program $@;;
+    'cross-compile-program' ) cross_compile_program $@;;
+    'run-program-se' ) run_program_se $@;;
+    'shell' | 'bash') run_shell $@;;
+    -* | +*) set "${cmd}" ;; # pass +/-flags to shell's set command.
+    *)
+      echo "unkown command '${cmd}'"
+      echo
+      print_usage
+      exit 1
+      ;;
+  esac
+  cd "${initial_dir}" || exit 1
+  #done
 }
 
 main "$@"

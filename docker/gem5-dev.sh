@@ -278,6 +278,20 @@ run_program_se() {
   fi
   echo "running gem5 ARM binary in Syscall Emulation mode ..."
   cd "${sourcedir}" || exit 1
+  #read in simulator arguments (these arguments appear before the binary name, which is after -b)
+  #use a loop to read in the arguments, and then use the shift command to remove them from the argument list.
+  #Stop when the -b flag is reached
+  for var in "$@"; do
+    #if the -b flag is reached, shift to the binary and break out of the loop
+    if [[ $var == "-b" ]]; then
+      shift
+      break
+    fi
+    #otherwise, add the argument to the list of simulator arguments
+    local -r sim_args="${args} ${var}"
+    shift
+  done
+
   local -r simulator='build/ARM/gem5.opt'
   local -r script='configs/example/se.py'
   local -r binary=$1
@@ -295,14 +309,38 @@ run_program_se() {
     #put the args in a string and pass it to the command
     local -r args=${@:2}
     #echo "${args}"
-    echo "running ${binary} with arguments ${args}"
-    local -r cmd="${simulator} ${script} -c ${binary} ${args}"
+    echo "running ${binary} with arguments ${args} and simulator arguments ${sim_args}"
+    #if there are simulator arguments, include them in the command
+    if [[ -n "${sim_args}" ]]; then
+      #echo the command
+      echo "${simulator} ${script} ${sim_args} -c ${binary} --options=\"${args}\""
+      #run the command
+      ${simulator} ${script} ${sim_args} -c ${binary} --options="${args}"
+    else
+      #echo the command
+      echo "${simulator} ${script} -c ${binary} --options=\"${args}\""
+      #run the command
+      ${simulator} ${script} -c ${binary} --options="${args}"
+    fi
+    
   else
-    local -r cmd="${simulator} ${script} -c ${binary}"
+    #if there are simulator arguments, include them in the command
+    if [[ -n "${sim_args}" ]]; then
+      #echo the command
+      echo "${simulator} ${script} ${sim_args} -c ${binary}"
+      #run the command
+      ${simulator} ${script} ${sim_args} -c ${binary}
+    else
+      #echo the command
+      echo "${simulator} ${script} -c ${binary}"
+      #run the command
+      ${simulator} ${script} -c ${binary}
+    fi
+    
   fi
   #echo the command and run it
-  echo "${cmd}"
-  ${cmd}
+  #echo "${cmd}"
+  #${cmd}
 }
 
 
